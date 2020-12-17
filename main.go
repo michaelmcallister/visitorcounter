@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 
 	"github.com/michaelmcallister/visitorcounter/datastore"
@@ -8,18 +9,22 @@ import (
 	"github.com/michaelmcallister/visitorcounter/visitorcounter"
 )
 
+var (
+	dbLocation = flag.String("db", "./counter.db", "database file location")
+	serverAddr = flag.String("http", "127.0.0.1:8080", "HTTP listen address")
+)
+
 func main() {
-	db, err := datastore.NewBolt("counter.db", nil)
+	flag.Parse()
+
+	db, err := datastore.NewBolt(*dbLocation, nil)
 	if err != nil {
-		log.Fatalf("Unable to create database: %v\n", err)
+		log.Fatal("Unable to create database: ", err)
 	}
-	renderer := visitorcounter.NewRender(db)
-	s, err := server.NewServer(renderer)
-	if err != nil {
-		log.Fatalf("Unable to start server: %v\n", err)
-	}
-	log.Print("Starting a server on :8080")
-	if err := s.ListenAndServe(); err != nil {
-		log.Fatalf("Unable to start server: %v\n", err)
+	log.Print("Starting a server on ", *serverAddr)
+	r := visitorcounter.NewRender(db)
+	s := server.NewServer(r)
+	if err := s.ListenAndServe(*serverAddr); err != nil {
+		log.Fatal("Unable to start server: ", err)
 	}
 }

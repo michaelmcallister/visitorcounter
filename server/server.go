@@ -23,6 +23,7 @@ var themeMap = map[string]visitorcounter.Theme{
 	"2": visitorcounter.Aomm,
 }
 
+// Server contains the methods for serving web requests.
 type Server struct {
 	renderer *visitorcounter.Renderer
 	server   *http.Server
@@ -36,6 +37,14 @@ func domain(r *http.Request) string {
 		d = r.URL.Query().Get(domainParam)
 	}
 	return d
+}
+
+func ip(r *http.Request) net.IP {
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		return net.ParseIP(xff)
+	}
+	return net.ParseIP(r.RemoteAddr)
 }
 
 func parseOptions(r *http.Request) *visitorcounter.Options {
@@ -57,31 +66,30 @@ func parseOptions(r *http.Request) *visitorcounter.Options {
 	}
 }
 
-func NewServer(r *visitorcounter.Renderer) (*Server, error) {
-	return &Server{renderer: r}, nil
+// NewServer returns a new instance of Server.
+func NewServer(r *visitorcounter.Renderer) *Server {
+	return &Server{renderer: r}
 }
 
 func (s *Server) serveImage(w http.ResponseWriter, r *http.Request) {
+	rIP, rDomain := ip(r), domain(r)
+	log.Printf("Recieved request from IP: %s [Referer: %q]\n", rIP, rDomain)
 	w.Header().Set("Content-Type", "image/png")
-
-	log.Printf("Recieved request from IP: %s [Referer: %q]\n", r.RemoteAddr, domain(r))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	go s.renderer.Add(ctx, net.ParseIP(r.RemoteAddr), domain(r))
-
-	count := s.renderer.Count(ctx, domain(r))
-	img, err := s.renderer.Render(ctx, parseOptions(r), count)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Fatalf("unable to render counter: %v", err)
-		return
+	if err := s.renderer.Add(ctx, rIP, rDomain); err != nil {
+		log.Print("Server: ", err)
 	}
+	count := s.renderer.Count(ctx, rDomain)
+	img := s.renderer.Render(ctx, parseOptions(r), count)
 	png.Encode(w, img)
 }
 
-func (s *Server) ListenAndServe() error {
+// ListenAndServe listens on the TCP network address addr and serves /c.png
+// as well as the files located in ./web at root.
+func (s *Server) ListenAndServe(addr string) error {
 	http.HandleFunc("/c.png", s.serveImage)
 	http.Handle("/", http.FileServer(http.Dir("./web")))
-	return http.ListenAndServe(":8080", nil)
+	return http.ListenAndServe(addr, nil)
 }

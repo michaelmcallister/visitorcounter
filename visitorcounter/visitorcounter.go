@@ -16,51 +16,83 @@ import (
 )
 
 const (
-	DefaultWidth = 5
-	maxWidth     = 100
+	// DefaultWidth is the minimum padding when displaying numbers, for example
+	// rendering the integer '0' with a defaultWidth of 5 would render as
+	// '00000'
+	DefaultWidth    = 5
+	maxWidth        = 100
+	saveQueueLength = 100
 )
 
+// Theme represents different styles for rendering.
 type Theme int
 
 const (
+	// Segment is a classic red 7-segment display.
 	Segment Theme = iota
+	// Aomm is the font from http://aomm.xyz/
 	Aomm
 )
 
+// Renderer is responsible for queing write events to the datastore, as well
+// as retrieving counts and redering them as PNGs.
 type Renderer struct {
 	datastore datastore.EventWriterCounter
+	save      chan datastore.VisitEvent
 }
 
+// Options influence how to render the PNG.
 type Options struct {
 	Theme Theme
 	Width int
 }
 
-func NewRender(datastore datastore.EventWriterCounter) *Renderer {
-	return &Renderer{datastore}
+// NewRender accepts a datastore.EventWriterCounter and returns the Renderer
+// used to retrieve counts, enque write events and render PNGs.
+func NewRender(d datastore.EventWriterCounter) *Renderer {
+	r := &Renderer{
+		datastore: d,
+		save:      make(chan datastore.VisitEvent, saveQueueLength),
+	}
+	go r.saveLoop()
+	return r
 }
 
+func (r *Renderer) saveLoop() {
+	ctx := context.Background()
+	for {
+		select {
+		case ev := <-r.save:
+			if err := r.datastore.Write(ctx, &ev); err != nil {
+				log.Println("Renderer: ", err)
+			}
+		}
+	}
+}
+
+// Count returns the amount of 'hits' for the supplied domain. Returns 0 if any
+// any errors are encountered. Empty domains are not considered valid.
 func (r *Renderer) Count(ctx context.Context, domain string) int {
 	if domain == "" {
-		log.Println("Empty domain supplied, returning 0 count.")
 		return 0
 	}
 	q := &datastore.QueryEvent{Domain: domain}
 	c, err := r.datastore.Count(ctx, q)
 	if err != nil {
-		log.Printf("Unable to retrieve count from datstore: %v", err)
+		log.Println("Renderer: unable to retrieve count from datstore: ", err)
 		return 0
 	}
 	return c
 }
 
-func (r *Renderer) Add(ctx context.Context, ip net.IP, domain string) error {
+// Add queues an event to be written to the datastore. Initial validation is
+// done to make sure that a valid domain and IP address are supplied, after
+// which the event will be added to the write queue (non-blocking).
+func (r *Renderer) Add(_ context.Context, ip net.IP, domain string) error {
 	if domain == "" {
-		log.Println("Empty domain supplied, refusing to add to datastore.")
 		return errors.New("empty domain supplied")
 	}
 	if ip == nil {
-		log.Println("Empty IP address supplied, refusing to add to datastore.")
 		return errors.New("empty IP address supplied")
 	}
 	ev := &datastore.VisitEvent{
@@ -68,10 +100,13 @@ func (r *Renderer) Add(ctx context.Context, ip net.IP, domain string) error {
 		Domain: domain,
 		IP:     ip,
 	}
-	return r.datastore.Write(ctx, ev)
+	r.save <- *ev
+	return nil
 }
 
-func (r *Renderer) Render(ctx context.Context, o *Options, number int) (image.Image, error) {
+// Render will render the supplied number and return a PNG that represents it.
+// Options can be optionally supplied, if nil, defaults will be used.
+func (r *Renderer) Render(_ context.Context, o *Options, number int) image.Image {
 	var numset []image.Image
 	switch o.Theme {
 	case Aomm:
@@ -108,6 +143,5 @@ func (r *Renderer) Render(ctx context.Context, o *Options, number int) (image.Im
 		nextGridRect := image.Rectangle{minPoint, maxPoint}
 		draw.Draw(canvas, nextGridRect, images[i], image.Point{}, draw.Src)
 	}
-
-	return canvas, nil
+	return canvas
 }
