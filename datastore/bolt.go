@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"hash/crc32"
-	"log"
 	"net"
 	"time"
 
@@ -60,7 +59,6 @@ func (b *Bolt) Write(e *VisitEvent) error {
 	// Marshal VisitEvent into bytes.
 	buf, err := json.Marshal(e)
 	if err != nil {
-		log.Printf("Unable to marshal event into JSON: %v\n", err)
 		return err
 	}
 
@@ -77,7 +75,6 @@ func (b *Bolt) Write(e *VisitEvent) error {
 // A negative integer will be returned in the case of an error.
 func (b *Bolt) Count(q *QueryEvent) (int, error) {
 	if q.Domain == "" {
-		log.Print("Empty domain supplied, returning 0 count.")
 		return 0, errors.New("empty domain")
 	}
 
@@ -101,7 +98,6 @@ func (b *Bolt) Count(q *QueryEvent) (int, error) {
 		})
 	})
 	if err != nil {
-		log.Printf("Unable to retrieve event: %v\n", err)
 		return 0, err
 	}
 	return cnt, nil
