@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"embed"
+	"fmt"
 	"image/png"
 	"log"
 	"net"
@@ -27,6 +29,18 @@ var themeMap = map[string]visitorcounter.Theme{
 type Server struct {
 	renderer *visitorcounter.Renderer
 	server   *http.Server
+}
+
+type webroot struct {
+	http.FileSystem
+}
+
+func (wr webroot) Open(name string) (http.File, error) {
+	n := fmt.Sprintf("web%s", name)
+	if name == "/" {
+		n = "web"
+	}
+	return wr.FileSystem.Open(n)
 }
 
 func domain(r *http.Request) string {
@@ -74,15 +88,22 @@ func NewServer(r *visitorcounter.Renderer) *Server {
 func (s *Server) serveImage(w http.ResponseWriter, r *http.Request) {
 	rIP, rDomain := ip(r), domain(r)
 	log.Printf("Recieved request from IP: %s [Referer: %q]\n", rIP, rDomain)
-	w.Header().Set("Content-Type", "image/png")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	if err := s.renderer.Add(ctx, rIP, rDomain); err != nil {
+		// We continue on error when trying to add a domain to the datastore,
+		// as it's not the end of the world.
 		log.Print("Server: ", err)
 	}
 	count := s.renderer.Count(ctx, rDomain)
-	img := s.renderer.Render(ctx, parseOptions(r), count)
+	img, err := s.renderer.Render(ctx, parseOptions(r), count)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Print("Server: ", err)
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
 	png.Encode(w, img)
 }
 
@@ -90,6 +111,9 @@ func (s *Server) serveImage(w http.ResponseWriter, r *http.Request) {
 // as well as the files located in ./web at root.
 func (s *Server) ListenAndServe(addr string) error {
 	http.HandleFunc("/c.png", s.serveImage)
-	http.Handle("/", http.FileServer(http.Dir("./web")))
+
+	//go:embed web
+	var content embed.FS
+	http.Handle("/", http.FileServer(webroot{http.FS(content)}))
 	return http.ListenAndServe(addr, nil)
 }
