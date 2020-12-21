@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"context"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -57,7 +56,7 @@ func NewBolt(file string, o *bolt.Options) (*Bolt, error) {
 
 // Write persists the supplied VisitEvent requested, returning nil if successful
 // otherwise an error.
-func (b *Bolt) Write(ctx context.Context, e *VisitEvent) error {
+func (b *Bolt) Write(e *VisitEvent) error {
 	// Marshal VisitEvent into bytes.
 	buf, err := json.Marshal(e)
 	if err != nil {
@@ -76,7 +75,7 @@ func (b *Bolt) Write(ctx context.Context, e *VisitEvent) error {
 
 // Count will return the number of records that match the supplied QueryEvent.
 // A negative integer will be returned in the case of an error.
-func (b *Bolt) Count(ctx context.Context, q *QueryEvent) (int, error) {
+func (b *Bolt) Count(q *QueryEvent) (int, error) {
 	if q.Domain == "" {
 		log.Print("Empty domain supplied, returning 0 count.")
 		return 0, errors.New("empty domain")

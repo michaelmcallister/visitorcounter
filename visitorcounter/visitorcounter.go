@@ -1,7 +1,8 @@
 package visitorcounter
 
 import (
-	"context"
+	"bytes"
+	"embed"
 	"errors"
 	"fmt"
 	"image"
@@ -11,8 +12,6 @@ import (
 	"time"
 
 	"github.com/michaelmcallister/visitorcounter/datastore"
-	"github.com/michaelmcallister/visitorcounter/visitorcounter/theme/aomm"
-	"github.com/michaelmcallister/visitorcounter/visitorcounter/theme/segment"
 )
 
 const (
@@ -25,14 +24,22 @@ const (
 )
 
 // Theme represents different styles for rendering.
-type Theme int
+type Theme string
+
+//go:embed theme
+var imgdir embed.FS
 
 const (
-	// Segment is a classic red 7-segment display.
-	Segment Theme = iota
-	// Aomm is the font from http://aomm.xyz/
-	Aomm
+	themeRootDir = "theme"
 )
+const (
+	// Segment is a classic red 7-segment display.
+	Segment Theme = "segment"
+	// Aomm is the font from http://aomm.xyz/
+	Aomm Theme = "aomm"
+)
+
+var themeTiles map[Theme][]image.Image
 
 // Renderer is responsible for queing write events to the datastore, as well
 // as retrieving counts and redering them as PNGs.
@@ -47,6 +54,34 @@ type Options struct {
 	Width int
 }
 
+func init() {
+	themeTiles = make(map[Theme][]image.Image)
+	dirs, err := imgdir.ReadDir(themeRootDir)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	for _, dir := range dirs {
+		d, err := imgdir.ReadDir(themeRootDir + "/" + dir.Name())
+		if err != nil {
+			log.Fatalln(err)
+		}
+		var tiles []image.Image
+		for _, file := range d {
+			f := fmt.Sprintf("%s/%s/%s", themeRootDir, dir.Name(), file.Name())
+			b, err := imgdir.ReadFile(f)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			img, _, err := image.Decode(bytes.NewReader(b))
+			if err != nil {
+				log.Fatalln(err)
+			}
+			tiles = append(tiles, img)
+		}
+		themeTiles[Theme(dir.Name())] = tiles
+	}
+}
+
 // NewRender accepts a datastore.EventWriterCounter and returns the Renderer
 // used to retrieve counts, enque write events and render PNGs.
 func NewRender(d datastore.EventWriterCounter) *Renderer {
@@ -59,11 +94,10 @@ func NewRender(d datastore.EventWriterCounter) *Renderer {
 }
 
 func (r *Renderer) saveLoop() {
-	ctx := context.Background()
 	for {
 		select {
 		case ev := <-r.save:
-			if err := r.datastore.Write(ctx, &ev); err != nil {
+			if err := r.datastore.Write(&ev); err != nil {
 				log.Println("Renderer: ", err)
 			}
 		}
@@ -72,12 +106,12 @@ func (r *Renderer) saveLoop() {
 
 // Count returns the amount of 'hits' for the supplied domain. Returns 0 if any
 // any errors are encountered. Empty domains are not considered valid.
-func (r *Renderer) Count(ctx context.Context, domain string) int {
+func (r *Renderer) Count(domain string) int {
 	if domain == "" {
 		return 0
 	}
 	q := &datastore.QueryEvent{Domain: domain}
-	c, err := r.datastore.Count(ctx, q)
+	c, err := r.datastore.Count(q)
 	if err != nil {
 		log.Println("Renderer: unable to retrieve count from datstore: ", err)
 		return 0
@@ -88,7 +122,7 @@ func (r *Renderer) Count(ctx context.Context, domain string) int {
 // Add queues an event to be written to the datastore. Initial validation is
 // done to make sure that a valid domain and IP address are supplied, after
 // which the event will be added to the write queue (non-blocking).
-func (r *Renderer) Add(_ context.Context, ip net.IP, domain string) error {
+func (r *Renderer) Add(ip net.IP, domain string) error {
 	if domain == "" {
 		return errors.New("empty domain supplied")
 	}
@@ -106,15 +140,7 @@ func (r *Renderer) Add(_ context.Context, ip net.IP, domain string) error {
 
 // Render will render the supplied number and return a PNG that represents it.
 // Options can be optionally supplied, if nil, defaults will be used.
-func (r *Renderer) Render(_ context.Context, o *Options, number int) image.Image {
-	var numset []image.Image
-	switch o.Theme {
-	case Aomm:
-		numset = aomm.Get()
-	default:
-		numset = segment.Get()
-	}
-
+func (r *Renderer) Render(o *Options, number int) (image.Image, error) {
 	if o.Width < 0 {
 		o.Width = DefaultWidth
 	}
@@ -124,7 +150,11 @@ func (r *Renderer) Render(_ context.Context, o *Options, number int) image.Image
 
 	var images []image.Image
 	for _, r := range fmt.Sprintf("%0*d", o.Width, number) {
-		images = append(images, numset[int(r-'0')])
+		tile := themeTiles[o.Theme][int(r-'0')]
+		if tile == nil {
+			return nil, fmt.Errorf("no tile found for %s:%s", o.Theme, r)
+		}
+		images = append(images, tile)
 	}
 	imageBoundX := images[0].Bounds().Dx()
 	imageBoundY := images[0].Bounds().Dy()
@@ -143,5 +173,5 @@ func (r *Renderer) Render(_ context.Context, o *Options, number int) image.Image
 		nextGridRect := image.Rectangle{minPoint, maxPoint}
 		draw.Draw(canvas, nextGridRect, images[i], image.Point{}, draw.Src)
 	}
-	return canvas
+	return canvas, nil
 }

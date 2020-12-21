@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"embed"
 	"fmt"
 	"image/png"
@@ -9,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/michaelmcallister/visitorcounter/visitorcounter"
 )
@@ -89,15 +87,13 @@ func (s *Server) serveImage(w http.ResponseWriter, r *http.Request) {
 	rIP, rDomain := ip(r), domain(r)
 	log.Printf("Recieved request from IP: %s [Referer: %q]\n", rIP, rDomain)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-	if err := s.renderer.Add(ctx, rIP, rDomain); err != nil {
+	if err := s.renderer.Add(rIP, rDomain); err != nil {
 		// We continue on error when trying to add a domain to the datastore,
 		// as it's not the end of the world.
 		log.Print("Server: ", err)
 	}
-	count := s.renderer.Count(ctx, rDomain)
-	img, err := s.renderer.Render(ctx, parseOptions(r), count)
+	count := s.renderer.Count(rDomain)
+	img, err := s.renderer.Render(parseOptions(r), count)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Print("Server: ", err)
