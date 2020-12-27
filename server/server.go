@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/michaelmcallister/visitorcounter/visitorcounter"
@@ -48,7 +49,11 @@ func domain(r *http.Request) string {
 	if d == "" {
 		d = r.URL.Query().Get(domainParam)
 	}
-	return d
+	url, err := url.Parse(d)
+	if err != nil {
+		return ""
+	}
+	return url.Hostname()
 }
 
 func ip(r *http.Request) net.IP {
