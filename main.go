@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"log"
+	"time"
+
+	bolt "go.etcd.io/bbolt"
 
 	"github.com/michaelmcallister/visitorcounter/datastore"
 	"github.com/michaelmcallister/visitorcounter/server"
@@ -17,7 +20,7 @@ var (
 func main() {
 	flag.Parse()
 
-	db, err := datastore.NewBolt(*dbLocation, nil)
+	db, err := datastore.NewBolt(*dbLocation, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Fatal("Unable to create database: ", err)
 	}
