@@ -7,10 +7,83 @@
     <title>Visitor Counter</title>
     <meta name="description" content="A Free old school visitor counter">
     <meta name="author" content="Michael McAllister">
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
-    <img src="/c.png" />
+    <div class="hero-unit">
+        <h1>Free Visitor Counter<img src="img/new2.gif"></h1>
+        <p>
+            <blink>No Signup Required!</blink>
+        </p>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Example</h1>
+        </div>
+        <center><img src="/c.png" /></center>
+
+        <div class="page-header">
+            <h1>Usage</h1>
+        </div>
+        <p>
+            Simply include an image tag linking to "c.png" on this domain.
+            There's no need to "register" or signup. No emails, no credit cards.
+            <br />
+        </p>
+        <pre>&lt;img src="https://hit.sknk.ws/c.png" /&gt;</pre>
+
+        <div class="page-header">
+            <h1>Themes</h1>
+        </div>
+        <center><img src="img/construction.gif"></center>
+        <p>
+            To change themes simply pass in a query parameter 't' with a number
+            that corresponds to the theme below.
+
+            For example to select theme two you would add the image to your
+            website like so:
+
+        <pre>&lt;img src="https://hit.sknk.ws/c.png?t=2" /&gt;</pre>
+
+        By default the theme is 1.
+        </p>
+        <table class="table table-bordered table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <th><img src="/c.png?t=1" /></th>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <th><img src="/c.png?t=2" /></th>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-header">
+            <h1>How it works</h1>
+        </div>
+
+        <p>
+            The server looks at the <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer">Referer
+                header</a> of the request to determine the domain. It's also possible to override this (in the case the
+            header is not set) by setting a query parameter 'd'
+            This parameter is only used as a fallback. If you were hosting this on the domain example.com, you would set
+            the fallback like so:
+
+        <pre>&lt;img src="https://hit.sknk.ws/c.png?d=example.com" /&gt;</pre>
+        </p>
+    </div>
+
 </body>
 
 </html>
