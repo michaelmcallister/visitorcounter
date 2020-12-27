@@ -53,6 +53,9 @@ func domain(r *http.Request) string {
 	if err != nil {
 		return ""
 	}
+	if url.Path != "/" {
+		return url.Hostname() + url.Path
+	}
 	return url.Hostname()
 }
 
