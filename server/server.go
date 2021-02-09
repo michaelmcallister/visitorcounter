@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"github.com/michaelmcallister/visitorcounter/visitorcounter"
@@ -43,20 +42,7 @@ func (wr webroot) Open(name string) (http.File, error) {
 }
 
 func domain(r *http.Request) string {
-	d := r.Header.Get("Referer")
-	// Use the Referer header if available. If not, fall back to (optionally)
-	// supplied domain parameter.
-	if d == "" {
-		d = r.URL.Query().Get(domainParam)
-	}
-	url, err := url.Parse(d)
-	if err != nil {
-		return ""
-	}
-	if url.Path != "/" {
-		return url.Hostname() + url.Path
-	}
-	return url.Hostname()
+	return r.URL.Query().Get(domainParam)
 }
 
 func ip(r *http.Request) net.IP {

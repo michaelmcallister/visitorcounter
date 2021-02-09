@@ -20,20 +20,18 @@
     </div>
 
     <div class="container">
-        <div class="page-header">
-            <h1>Example</h1>
-        </div>
-        <center><img src="/c.png" /></center>
+        <center><img src="/c.png?d=hit.sknk.ws" /></center>
 
         <div class="page-header">
             <h1>Usage</h1>
         </div>
         <p>
-            Simply include an image tag linking to "c.png" on this domain.
-            There's no need to "register" or signup. No emails, no credit cards.
+            Simply include an image tag linking to "c.png" on this domain and 
+            set the 'd' parameter to your domain.
+            There's no need to register or signup. No emails, no credit cards.
             <br />
         </p>
-        <pre>&lt;img src="https://hit.sknk.ws/c.png" /&gt;</pre>
+        <pre>&lt;img src="https://hit.sknk.ws/c.png?d=example.com" /&gt;</pre>
 
         <div class="page-header">
             <h1>Themes</h1>
@@ -46,7 +44,7 @@
             For example to select theme two you would add the image to your
             website like so:
 
-        <pre>&lt;img src="https://hit.sknk.ws/c.png?t=2" /&gt;</pre>
+        <pre>&lt;img src="https://hit.sknk.ws/c.png?t=2&d=example.com" /&gt;</pre>
 
         By default the theme is 1.
         </p>
@@ -70,17 +68,10 @@
         </table>
 
         <div class="page-header">
-            <h1>How it works</h1>
+            <h1>What's the catch?</h1>
         </div>
-
         <p>
-            The server looks at the <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer">Referer
-                header</a> of the request to determine the domain. It's also possible to override this (in the case the
-            header is not set) by setting a query parameter 'd'
-            This parameter is only used as a fallback. If you were hosting this on the domain example.com, you would set
-            the fallback like so:
-
-        <pre>&lt;img src="https://hit.sknk.ws/c.png?d=example.com" /&gt;</pre>
+            There isn't one, but I offer no uptime guarantee.
         </p>
     </div>
 
