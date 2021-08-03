@@ -1,5 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 load("@bazel_gazelle//:def.bzl", "gazelle")
+load("@io_bazel_rules_docker//container:container.bzl", "container_push" ,"container_image")
+
 
 # gazelle:prefix github.com/michaelmcallister/visitorcounter
 gazelle(name = "gazelle")
@@ -21,4 +23,21 @@ go_binary(
     name = "visitorcounter",
     embed = [":visitorcounter_lib"],
     visibility = ["//visibility:public"],
+)
+
+container_image(
+    name = "visitorcounter_image",
+    base = "@base//image",
+    entrypoint = ["./visitorcounter"],
+    files = [":visitorcounter"],
+    ports = ["8080"]
+)
+
+container_push(
+   name = "visitorcounter_push",
+   image = ":visitorcounter_image",
+   format = "Docker",
+   registry = "registry.sknk.ws",
+   repository = "lab/visitor-counter",
+   tag = "latest",
 )
