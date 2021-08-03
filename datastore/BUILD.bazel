@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "datastore",
+    srcs = [
+        "bolt.go",
+        "datastore.go",
+    ],
+    importpath = "github.com/michaelmcallister/visitorcounter/datastore",
+    visibility = ["//visibility:public"],
+    deps = ["@io_etcd_go_bbolt//:go_default_library"],
+)

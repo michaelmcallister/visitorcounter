@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# gazelle:prefix github.com/michaelmcallister/visitorcounter
+gazelle(name = "gazelle")
+
+go_library(
+    name = "visitorcounter_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/michaelmcallister/visitorcounter",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//datastore",
+        "//server",
+        "//visitorcounter",
+        "@io_etcd_go_bbolt//:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "visitorcounter",
+    embed = [":visitorcounter_lib"],
+    visibility = ["//visibility:public"],
+)

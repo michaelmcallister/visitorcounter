@@ -18,6 +18,9 @@ const (
 	domainParam = "d"
 )
 
+//go:embed web
+var content embed.FS
+
 var themeMap = map[string]visitorcounter.Theme{
 	"1": visitorcounter.Segment,
 	"2": visitorcounter.Aomm,
@@ -79,7 +82,7 @@ func NewServer(r *visitorcounter.Renderer) *Server {
 
 func (s *Server) serveImage(w http.ResponseWriter, r *http.Request) {
 	rIP, rDomain := ip(r), domain(r)
-	log.Printf("Recieved request from IP: %s [Referer: %q]\n", rIP, rDomain)
+	log.Printf("Received request from IP: %s [Referer: %q]\n", rIP, rDomain)
 
 	if err := s.renderer.Add(rIP, rDomain); err != nil {
 		// We continue on error when trying to add a domain to the datastore,
@@ -102,8 +105,6 @@ func (s *Server) serveImage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) ListenAndServe(addr string) error {
 	http.HandleFunc("/c.png", s.serveImage)
 
-	//go:embed web
-	var content embed.FS
 	http.Handle("/", http.FileServer(webroot{http.FS(content)}))
 	return http.ListenAndServe(addr, nil)
 }

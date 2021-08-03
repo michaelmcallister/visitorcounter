@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "server",
+    srcs = ["server.go"],
+    embedsrcs = [
+        "web/css/bootstrap.min.css",
+        "web/css/website.css",
+        "web/img/construction.gif",
+        "web/img/flames.gif",
+        "web/img/glyphicons-halflings-white.png",
+        "web/img/glyphicons-halflings.png",
+        "web/img/microfab.gif",
+        "web/img/new2.gif",
+        "web/img/rainbow.gif",
+        "web/img/stars.gif",
+        "web/index.html",
+    ],
+    importpath = "github.com/michaelmcallister/visitorcounter/server",
+    visibility = ["//visibility:public"],
+    deps = ["//visitorcounter"],
+)

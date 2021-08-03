@@ -1,0 +1,31 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "visitorcounter",
+    srcs = ["visitorcounter.go"],
+    embedsrcs = [
+        "theme/aomm/0.png",
+        "theme/aomm/1.png",
+        "theme/aomm/2.png",
+        "theme/aomm/3.png",
+        "theme/aomm/4.png",
+        "theme/aomm/5.png",
+        "theme/aomm/6.png",
+        "theme/aomm/7.png",
+        "theme/aomm/8.png",
+        "theme/aomm/9.png",
+        "theme/segment/0.png",
+        "theme/segment/1.png",
+        "theme/segment/2.png",
+        "theme/segment/3.png",
+        "theme/segment/4.png",
+        "theme/segment/5.png",
+        "theme/segment/6.png",
+        "theme/segment/7.png",
+        "theme/segment/8.png",
+        "theme/segment/9.png",
+    ],
+    importpath = "github.com/michaelmcallister/visitorcounter/visitorcounter",
+    visibility = ["//visibility:public"],
+    deps = ["//datastore"],
+)
